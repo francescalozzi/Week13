@@ -1,3 +1,5 @@
+import copy
+
 from arts_mia.database.DAO import DAO
 import networkx as nx
 from arts_mia.model.connessione import Connessione
@@ -12,6 +14,8 @@ class Model:
             self._objects_dict[o.object_id] = o
         # grafo semplice, non diretto ma pesato
         self._grafo = nx.Graph()
+        self._soluzioneMigliore = []  # lista di nodi
+        self._pesoMigliore = 0
 
     def _getObjects(self):
         self._objects_list = DAO.readObjects()
@@ -48,7 +52,48 @@ class Model:
         prededessori = nx.dfs_predecessors(self._grafo, nodo_sorgente)
         print(f"Prededessori: {len(prededessori)}")
 
-        # Ottenendo l'albero di visita
+        # Ottenendo l'albero di visita -> GRAFO
         albero = nx.dfs_tree(self._grafo, nodo_sorgente)
         print(f"Albero: {albero}")
         return len(albero.nodes)
+
+
+
+    def getPercorsoMassimo(self, id_oggetto,lunghezza):
+        v_iniziale = self._objects_dict[id_oggetto]
+        self._soluzioneMigliore = [] # lista di nodi
+        self._pesoMigliore = 0
+
+        parziale = [v_iniziale]
+        self.ricorsione(parziale,lunghezza)
+
+        return self._soluzioneMigliore, self._pesoMigliore
+
+    def ricorsione(self,parziale,lunghezza):
+        if len(parziale) == lunghezza:
+            #print(parziale)
+            # Verifico se sia migliore dell'attuale migliore
+            if self.calcolaPeso(parziale) > self._pesoMigliore:
+                self._pesoMigliore = self.calcolaPeso(parziale)
+                self._soluzioneMigliore = copy.deepcopy(parziale)
+
+            return
+
+        else:
+            for v in self._grafo.neighbors(parziale[-1]): # vicini dell'ultimo nodo aggiunto
+                if v not in parziale and v.classification == parziale[0].classification:
+                    parziale.append(v)
+                    self.ricorsione(parziale,lunghezza)
+                    parziale.pop()
+
+
+
+
+    def calcolaPeso(self,listaNodi):
+        peso_totale = 0
+        for i in range(0,len(listaNodi)-1):
+            u = listaNodi[i]
+            v = listaNodi[i+1]
+            peso_totale += self._grafo[u][v]['peso']
+
+        return peso_totale
