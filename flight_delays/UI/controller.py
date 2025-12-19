@@ -9,6 +9,14 @@ class Controller:
         self._model = model
 
     def handle_analizzaAereoporti(self, e):
+        try:
+            min = int(self._view.txtNumCompagnieMinimo.value)
+        except ValueError:
+            self._view.create_alert("Inserisci un numero")
+            return
+
+        self._model.buildGraph(min)
+
 
         """
         name = self._view.txt_name.value
